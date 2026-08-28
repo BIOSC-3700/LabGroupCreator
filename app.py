@@ -35,6 +35,20 @@ from labgroupassigner.schema import (
     SolveConfig,
 )
 
+
+def _uninformative_columns(df):
+    """Return column names that carry no useful data."""
+    drop = []
+    for col in df.columns:
+        if not col or col.isspace():
+            drop.append(col)
+            continue
+        vals = df[col].dropna()
+        if len(vals) == 0 or vals.nunique() <= 1:
+            drop.append(col)
+    return drop
+
+
 app_ui = ui.page_navbar(
     ui.nav_panel(
         "1. Load Data",
@@ -64,6 +78,11 @@ app_ui = ui.page_navbar(
                 ),
                 ui.output_ui("settings_panel"),
                 width=350,
+            ),
+            ui.input_switch(
+                "hide_uninformative",
+                "Hide uninformative columns",
+                value=True,
             ),
             ui.navset_card_tab(
                 ui.nav_panel(
@@ -463,6 +482,10 @@ def server(input, output, session):
         df = derived_df()
         if df is None:
             return None
+        if input.hide_uninformative():
+            drop = _uninformative_columns(df)
+            if drop:
+                df = df.drop(columns=drop)
         return render.DataGrid(
             df,
             row_selection_mode="none",
