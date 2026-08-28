@@ -5,6 +5,13 @@
     }
   ],
   "settings": {
-    "cSpell.words": ["labgroupassigner", "LIKERT", "navset"]
+    "cSpell.words": [
+      "datapath",
+      "labgroupassigner",
+      "LIKERT",
+      "navs",
+      "navset",
+      "selectize"
+    ]
   }
 }
