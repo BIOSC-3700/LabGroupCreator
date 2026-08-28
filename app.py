@@ -61,11 +61,6 @@ app_ui = ui.page_navbar(
                     "Upload roster CSV",
                     accept=[".csv"],
                 ),
-                ui.input_action_button(
-                    "load_example",
-                    "Load example roster",
-                    class_="btn-outline-secondary btn-sm mt-2",
-                ),
                 ui.hr(),
                 ui.h5("Column Roles"),
                 ui.output_ui("column_selectors"),
