@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -188,7 +189,12 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.load_example)
     def _on_example():
-        df = pd.read_csv("examples/test_roster.csv")
+        example_path = (
+            Path(__file__).parent
+            / "examples"
+            / "test_roster.csv"
+        )
+        df = pd.read_csv(example_path)
         raw_df.set(df)
         derived_rules.set([])
         result_val.set(None)
