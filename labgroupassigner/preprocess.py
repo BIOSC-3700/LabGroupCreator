@@ -336,38 +336,40 @@ def prepare(df, spec, config=None, status_callback=None):
 
     if use_pronoun_constraint:
         log(
-            "She/unknown isolation constraint ENABLED"
+            "Pronoun balance constraint ENABLED "
+            "(she/unknown)"
         )
     else:
         issues.append(Issue(
             severity="warning",
             message=(
-                "She/unknown balance constraint "
+                "Pronoun balance constraint "
                 "disabled: not enough she/unknown "
                 f"({n_she}) for {n_groups} groups"
             ),
         ))
         log(
-            "She/unknown isolation constraint "
-            "DISABLED (not enough for constraint)"
+            "Pronoun balance constraint DISABLED "
+            "(not enough she/unknown)"
         )
 
     if use_he_constraint:
         log(
-            "He isolation constraint ENABLED"
+            "Pronoun balance constraint ENABLED "
+            "(he)"
         )
     else:
         issues.append(Issue(
             severity="warning",
             message=(
-                "He balance constraint "
+                "Pronoun balance constraint "
                 "disabled: not enough he "
                 f"({n_he}) for {n_groups} groups"
             ),
         ))
         log(
-            "He isolation constraint "
-            "DISABLED (not enough for constraint)"
+            "Pronoun balance constraint DISABLED "
+            "(not enough he)"
         )
 
     if same_name_pairs:
