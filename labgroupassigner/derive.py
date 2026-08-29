@@ -248,12 +248,15 @@ def apply_derived(df, rules):
                 new_col_vals.append(canonical)
                 cleaned_source.append(cleaned)
 
-            source_pos = df.columns.get_loc(source)
-            df.insert(
-                source_pos + 1,
-                rule.new_name,
-                new_col_vals,
-            )
+            if rule.new_name in df.columns:
+                df[rule.new_name] = new_col_vals
+            else:
+                source_pos = df.columns.get_loc(source)
+                df.insert(
+                    source_pos + 1,
+                    rule.new_name,
+                    new_col_vals,
+                )
 
             if rule.strip_from_source:
                 df[source] = cleaned_source
