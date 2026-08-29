@@ -180,6 +180,7 @@ def server(input, output, session):
     status_log = reactive.value("")
     show_settings = reactive.value(False)
     uploaded_stem = reactive.value("roster")
+    data_overrides = reactive.value({})
 
     # --- File upload ---
     @reactive.effect
@@ -194,6 +195,7 @@ def server(input, output, session):
         raw_df.set(df)
         derived_rules.set([])
         result_val.set(None)
+        data_overrides.set({})
         stem = name.rsplit(".", 1)[0] if "." in name else name
         uploaded_stem.set(stem)
 
@@ -205,6 +207,7 @@ def server(input, output, session):
         raw_df.set(df)
         derived_rules.set([])
         result_val.set(None)
+        data_overrides.set({})
         uploaded_stem.set("test_roster")
 
     # --- Derived DataFrame ---
@@ -215,8 +218,15 @@ def server(input, output, session):
             return None
         rules = derived_rules.get()
         if rules:
-            new_df, reports = apply_derived(df, rules)
-            return new_df
+            df, reports = apply_derived(df, rules)
+        else:
+            df = df.copy()
+
+        # Apply user overrides from cell edits
+        overrides = data_overrides.get()
+        for (row, col), val in overrides.items():
+            if col in df.columns:
+                df.at[row, col] = val
         return df
 
     # --- Column selectors ---
@@ -655,12 +665,12 @@ def server(input, output, session):
             return displayed.at[row, col_name]
 
         spec = current_spec()
-        df = raw_df.get().copy()
+        overrides = dict(data_overrides.get())
 
         if col_name == "Preferred_name":
-            df.at[row, spec.label_col] = value
+            overrides[(row, spec.label_col)] = value
         elif col_name == "Pronoun" and spec.balance_col:
-            df.at[row, spec.balance_col] = value
+            overrides[(row, spec.balance_col)] = value
         else:
             # Map Q1..Qn back to original score column
             categories = [
@@ -674,9 +684,9 @@ def server(input, output, session):
                     value = float(value)
                 except (ValueError, TypeError):
                     pass
-                df.at[row, orig_col] = value
+                overrides[(row, orig_col)] = value
 
-        raw_df.set(df)
+        data_overrides.set(overrides)
         result_val.set(None)
         return value
 
