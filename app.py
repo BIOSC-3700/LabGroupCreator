@@ -37,8 +37,7 @@ from labgroupassigner.schema import (
     SolveConfig,
 )
 
-
-_LEADING_CODE_RE = re.compile(r"^\d{8}\s+")
+_LEADING_CODE_RE = re.compile(r"^\d{8}[:\s]+\s*")
 
 
 def _strip_column_codes(df):
@@ -200,11 +199,7 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.load_example)
     def _on_example():
-        example_path = (
-            Path(__file__).parent
-            / "examples"
-            / "test_roster.csv"
-        )
+        example_path = Path(__file__).parent / "examples" / "test_roster.csv"
         df = pd.read_csv(example_path)
         raw_df.set(df)
         derived_rules.set([])
