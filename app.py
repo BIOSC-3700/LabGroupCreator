@@ -491,7 +491,26 @@ def server(input, output, session):
             df,
             row_selection_mode="none",
             height="500px",
+            editable=True,
         )
+
+    @raw_table.set_patch_fn
+    def _(*, patch):
+        row = patch["row_index"]
+        col_idx = patch["column_index"]
+        value = patch["value"]
+
+        # Resolve displayed column name
+        displayed = raw_table.data_patched()
+        col_name = displayed.columns[col_idx]
+
+        # Update the underlying DataFrame
+        df = raw_df.get().copy()
+        df.at[row, col_name] = value
+        raw_df.set(df)
+        result_val.set(None)
+
+        return value
 
     @output
     @render.text
