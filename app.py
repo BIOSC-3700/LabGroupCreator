@@ -1,4 +1,5 @@
 import io
+import re
 from pathlib import Path
 
 import numpy as np
@@ -35,6 +36,21 @@ from labgroupassigner.schema import (
     DerivedColumn,
     SolveConfig,
 )
+
+
+_LEADING_CODE_RE = re.compile(r"^\d{8}\s+")
+
+
+def _strip_column_codes(df):
+    """Strip leading 8-digit codes from column names."""
+    rename = {}
+    for col in df.columns:
+        cleaned = _LEADING_CODE_RE.sub("", col)
+        if cleaned != col:
+            rename[col] = cleaned
+    if rename:
+        df = df.rename(columns=rename)
+    return df
 
 
 def _uninformative_columns(df):
@@ -174,7 +190,7 @@ def server(input, output, session):
             return
         path = file_info[0]["datapath"]
         name = file_info[0]["name"]
-        df = pd.read_csv(path)
+        df = _strip_column_codes(pd.read_csv(path))
         raw_df.set(df)
         derived_rules.set([])
         result_val.set(None)
