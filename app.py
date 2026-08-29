@@ -644,11 +644,23 @@ def server(input, output, session):
             df.insert(1, "Pronoun", p["pronouns"])
         df["Total"] = p["total_scores"]
 
+        styles = []
+        if p["pronouns"] is not None:
+            for i, pn in enumerate(p["pronouns"]):
+                if pn == "Unknown":
+                    styles.append({
+                        "rows": [i],
+                        "style": {
+                            "background-color": "#fff3cd",
+                        },
+                    })
+
         return render.DataGrid(
             df,
             row_selection_mode="none",
             height="400px",
             editable=True,
+            styles=styles,
         )
 
     @recoded_table.set_patch_fn
