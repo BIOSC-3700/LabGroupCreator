@@ -168,6 +168,7 @@ app_ui = ui.page_navbar(
     ),
     title="Lab Group Assigner",
     id="main_nav",
+    header=ui.tags.head(ui.tags.title("Lab Group Assigner")),
 )
 
 
