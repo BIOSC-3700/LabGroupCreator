@@ -51,6 +51,7 @@ def build_and_solve(
     is_she = data["is_she"]
     pairs = data["same_name_pairs"]
     use_pronoun = data["use_pronoun_constraint"]
+    use_he = data.get("use_he_constraint", False)
     n_cat = len(data["categories"])
 
     # Compute group sizes
@@ -82,9 +83,10 @@ def build_and_solve(
 
     is_he = 1 - is_she
 
-    if use_pronoun:
-        n_vars = n_base + 8 * g
+    n_she_vars = 4 * g if use_pronoun else 0
+    n_he_vars = 4 * g if use_he else 0
 
+    if use_pronoun:
         def idx_has_she(j):
             return n_base + j
 
@@ -97,19 +99,22 @@ def build_and_solve(
         def idx_d_minus(j):
             return n_base + 3 * g + j
 
+    he_base = n_base + n_she_vars
+
+    if use_he:
         def idx_has_he(j):
-            return n_base + 4 * g + j
+            return he_base + j
 
         def idx_has_two_he(j):
-            return n_base + 5 * g + j
+            return he_base + g + j
 
         def idx_d_plus_he(j):
-            return n_base + 6 * g + j
+            return he_base + 2 * g + j
 
         def idx_d_minus_he(j):
-            return n_base + 7 * g + j
-    else:
-        n_vars = n_base
+            return he_base + 3 * g + j
+
+    n_vars = n_base + n_she_vars + n_he_vars
 
     # -- Objective --
     obj = np.zeros(n_vars)
@@ -124,6 +129,8 @@ def build_and_solve(
             obj[idx_d_minus(j)] = pronoun_weight
             obj[idx_has_she(j)] = one_she_penalty
             obj[idx_has_two_she(j)] = -one_she_penalty
+    if use_he:
+        for j in range(g):
             obj[idx_d_plus_he(j)] = pronoun_weight
             obj[idx_d_minus_he(j)] = pronoun_weight
             obj[idx_has_he(j)] = one_she_penalty
@@ -139,7 +146,9 @@ def build_and_solve(
         + len(pairs) * g
     )
     if use_pronoun:
-        n_rows += 10 * g
+        n_rows += 5 * g
+    if use_he:
+        n_rows += 5 * g
 
     A = lil_matrix((n_rows, n_vars))
     lb = np.full(n_rows, -np.inf)
@@ -253,6 +262,7 @@ def build_and_solve(
             ub[row] = 2.0
             row += 1
 
+    if use_he:
         # Block 10a: he_count >= has_he
         for j in range(g):
             for i in range(n):
@@ -280,7 +290,7 @@ def build_and_solve(
             ub[row] = np.inf
             row += 1
 
-        # Block 11b: he_count <= 1 + (s-1)*has_two_he
+        # Block 11b: he_count <= 1+(s-1)*has_two_he
         for j in range(g):
             for i in range(n):
                 A[row, idx_x(i, j)] = is_he[i]
@@ -309,11 +319,10 @@ def build_and_solve(
         integrality[
             n_base + g:n_base + 2 * g
         ] = 1
+    if use_he:
+        integrality[he_base:he_base + g] = 1
         integrality[
-            n_base + 4 * g:n_base + 5 * g
-        ] = 1
-        integrality[
-            n_base + 5 * g:n_base + 6 * g
+            he_base + g:he_base + 2 * g
         ] = 1
 
     # -- Variable bounds --
@@ -332,14 +341,13 @@ def build_and_solve(
         var_ub[
             n_base + 2 * g:n_base + 4 * g
         ] = np.inf
+    if use_he:
+        var_ub[he_base:he_base + g] = 1.0
         var_ub[
-            n_base + 4 * g:n_base + 5 * g
+            he_base + g:he_base + 2 * g
         ] = 1.0
         var_ub[
-            n_base + 5 * g:n_base + 6 * g
-        ] = 1.0
-        var_ub[
-            n_base + 6 * g:n_base + 8 * g
+            he_base + 2 * g:he_base + 4 * g
         ] = np.inf
 
     # -- Solve --

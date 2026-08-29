@@ -503,26 +503,7 @@ def server(input, output, session):
             df,
             row_selection_mode="none",
             height="500px",
-            editable=True,
         )
-
-    @raw_table.set_patch_fn
-    def _(*, patch):
-        row = patch["row_index"]
-        col_idx = patch["column_index"]
-        value = patch["value"]
-
-        # Resolve displayed column name
-        displayed = raw_table.data_patched()
-        col_name = displayed.columns[col_idx]
-
-        # Update the underlying DataFrame
-        df = raw_df.get().copy()
-        df.at[row, col_name] = value
-        raw_df.set(df)
-        result_val.set(None)
-
-        return value
 
     @output
     @render.text
@@ -657,7 +638,47 @@ def server(input, output, session):
             df,
             row_selection_mode="none",
             height="400px",
+            editable=True,
         )
+
+    @recoded_table.set_patch_fn
+    def _(*, patch):
+        row = patch["row_index"]
+        col_idx = patch["column_index"]
+        value = patch["value"]
+
+        displayed = recoded_table.data_patched()
+        col_name = displayed.columns[col_idx]
+
+        # Reject edits to computed Total column
+        if col_name == "Total":
+            return displayed.at[row, col_name]
+
+        spec = current_spec()
+        df = raw_df.get().copy()
+
+        if col_name == "Preferred_name":
+            df.at[row, spec.label_col] = value
+        elif col_name == "Pronoun" and spec.balance_col:
+            df.at[row, spec.balance_col] = value
+        else:
+            # Map Q1..Qn back to original score column
+            categories = [
+                f"Q{i + 1}"
+                for i in range(len(spec.score_cols))
+            ]
+            if col_name in categories:
+                qi = categories.index(col_name)
+                orig_col = spec.score_cols[qi]
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    pass
+                df.at[row, orig_col] = value
+
+        raw_df.set(df)
+        result_val.set(None)
+        return value
 
     @output
     @render.ui

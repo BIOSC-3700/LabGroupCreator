@@ -193,6 +193,8 @@ def prepare(df, spec, config=None, status_callback=None):
         def _recode(val):
             if pd.isna(val):
                 return np.nan
+            if isinstance(val, (int, float)):
+                return float(val)
             key = " ".join(str(val).lower().split())
             return _LIKERT_MAP_LOWER.get(key, np.nan)
 
@@ -324,27 +326,48 @@ def prepare(df, spec, config=None, status_callback=None):
 
     # Pronoun constraint feasibility
     n_she = int(is_she.sum())
+    n_he = n_students - n_she
     use_pronoun_constraint = (
         n_she == 0 or n_she >= 2 * n_groups
+    )
+    use_he_constraint = (
+        n_he == 0 or n_he >= 2 * n_groups
     )
 
     if use_pronoun_constraint:
         log(
-            "Pronoun constraint ENABLED "
-            "(single-she groups penalized)"
+            "She/unknown isolation constraint ENABLED"
         )
     else:
         issues.append(Issue(
             severity="warning",
             message=(
-                "Pronoun balance constraint "
+                "She/unknown balance constraint "
                 "disabled: not enough she/unknown "
                 f"({n_she}) for {n_groups} groups"
             ),
         ))
         log(
-            "Pronoun constraint DISABLED "
-            "(not enough 'she' for constraint)"
+            "She/unknown isolation constraint "
+            "DISABLED (not enough for constraint)"
+        )
+
+    if use_he_constraint:
+        log(
+            "He isolation constraint ENABLED"
+        )
+    else:
+        issues.append(Issue(
+            severity="warning",
+            message=(
+                "He balance constraint "
+                "disabled: not enough he "
+                f"({n_he}) for {n_groups} groups"
+            ),
+        ))
+        log(
+            "He isolation constraint "
+            "DISABLED (not enough for constraint)"
         )
 
     if same_name_pairs:
@@ -375,6 +398,7 @@ def prepare(df, spec, config=None, status_callback=None):
         "n_groups": n_groups,
         "group_sizes": sizes,
         "use_pronoun_constraint": use_pronoun_constraint,
+        "use_he_constraint": use_he_constraint,
         "categories": categories,
         "issues": issues,
         "imputed_cells": imputed_cells,
