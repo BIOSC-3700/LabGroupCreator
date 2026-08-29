@@ -142,6 +142,81 @@ def test_normalize_pronoun(
             "Amy He (she/her)",
             "Amy He", "She", True,
         ),
+        # Entire field is a pronoun (no name)
+        ("she/her", "", "She", True),
+        ("He/Him", "", "He", True),
+        ("She/Her", "", "She", True),
+        # Space-separated trailing pronoun with slash
+        ("Drew he/him", "Drew", "He", True),
+        ("Payton she/her", "Payton", "She", True),
+        ("Lukas He/Him", "Lukas", "He", True),
+        (
+            "Harrison He/Him",
+            "Harrison", "He", True,
+        ),
+        # Free-text ending with pronoun
+        (
+            "Colin is fine! He/Him/His",
+            "Colin is fine!", "He", True,
+        ),
+        (
+            "My prefered name is Abi and my "
+            "pronouns are she/her",
+            "My prefered name is Abi and my "
+            "pronouns are", "She", True,
+        ),
+        # Comma-separated inside parens
+        (
+            "Avery (She, Her)",
+            "Avery", "She", True,
+        ),
+        # Trailing non-ASCII garbage
+        (
+            "Sarah\u00ac\u2020",
+            "Sarah", "Unknown", False,
+        ),
+        (
+            "Lindsea\u00ac\u2020",
+            "Lindsea", "Unknown", False,
+        ),
+        # Comma-separated pronoun (no parens)
+        (
+            "Katie, she/her",
+            "Katie", "She", True,
+        ),
+        (
+            "Wren, she/her",
+            "Wren", "She", True,
+        ),
+        (
+            "Eli, He/Him",
+            "Eli", "He", True,
+        ),
+        # Parenthetical that is NOT a pronoun
+        (
+            "Rayne\n\n(sounds like rain)",
+            "Rayne\n\n(sounds like rain)",
+            "Unknown", False,
+        ),
+        # Bracketed pronoun
+        (
+            "Caleb (He/Him)",
+            "Caleb", "He", True,
+        ),
+        (
+            "Anna (she/her)",
+            "Anna", "She", True,
+        ),
+        (
+            "Leah (she/her)",
+            "Leah", "She", True,
+        ),
+        # Plain names -> unknown
+        ("Kate", "Kate", "Unknown", False),
+        ("Anna", "Anna", "Unknown", False),
+        ("Aidan", "Aidan", "Unknown", False),
+        ("Evan", "Evan", "Unknown", False),
+        ("Jackson", "Jackson", "Unknown", False),
     ],
 )
 def test_extract_pronoun(
