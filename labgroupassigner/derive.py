@@ -84,13 +84,18 @@ def normalize_pronoun(value):
 
 # --- Pronoun extraction from name fields ---
 
+# Strip trailing non-ASCII junk (e.g., ¬†)
+_TRAILING_JUNK_RE = re.compile(r"[^\x00-\x7F]+\s*$")
+
 # Matches trailing pronoun tags in brackets, parens,
-# or after a dash/comma separator:
+# after a dash/comma, or after whitespace (if the tag
+# contains a slash):
 #   Alice Smith (she/her)
 #   Jordan Park [he/him]
 #   Pat Chen - she/her
-# The tag must contain a slash or be a single bracketed
-# token like (he). Bare trailing words are NOT matched
+#   Drew he/him
+#   Avery (She, Her)
+# Bare trailing words without a slash are NOT matched
 # to protect surnames like He, Her, Him.
 _PRONOUN_TAG_RE = re.compile(
     r"""
@@ -99,10 +104,12 @@ _PRONOUN_TAG_RE = re.compile(
         [-,]\s*                # dash or comma
         |                      # or
         [\[\(]\s*              # opening bracket
+        |                      # or
+        \s+                    # bare whitespace
     )
     (                          # capture the tag
         [a-zA-Z]+              # first token
-        (?:/[a-zA-Z]+)*        # optional /token parts
+        (?:[/,]\s*[a-zA-Z]+)*  # /token or ,token parts
     )
     \s*                        # trailing whitespace
     [\]\)]*                    # optional closing bracket
@@ -122,11 +129,27 @@ def extract_pronoun(name):
     if not name or not isinstance(name, str):
         return (name, "Unknown", False)
 
+    # Strip trailing non-ASCII garbage
+    name = _TRAILING_JUNK_RE.sub("", name).rstrip()
+    if not name:
+        return ("", "Unknown", False)
+
+    # Check if entire field is a bare pronoun
+    # (no spaces, e.g., "she/her", "He/Him")
+    if " " not in name:
+        canonical, recognized = normalize_pronoun(name)
+        if recognized:
+            return ("", canonical, True)
+
     m = _PRONOUN_TAG_RE.search(name)
     if not m:
         return (name, "Unknown", False)
 
     tag = m.group(1)
+
+    # Normalize commas to slashes for bracketed groups
+    # like (She, Her)
+    tag = re.sub(r",\s*", "/", tag)
 
     # Require the tag to look like a pronoun:
     # must contain a slash OR be a single bracketed
@@ -149,11 +172,17 @@ def extract_pronoun(name):
         ):
             return (name, "Unknown", False)
 
+    # Verify that the tag normalizes to a recognized
+    # pronoun (guards against false positives like
+    # "sounds like rain")
+    canonical, recognized = normalize_pronoun(tag)
+    if not recognized:
+        return (name, "Unknown", False)
+
     # Mid-string tags (not at logical end) are rejected.
     # E.g., "Marco (he/him) Silva" should not match.
     # The regex already anchors to $, so this is handled.
 
-    canonical, recognized = normalize_pronoun(tag)
     cleaned_name = name[:m.start()].rstrip()
 
     return (cleaned_name, canonical, recognized)
@@ -219,7 +248,12 @@ def apply_derived(df, rules):
                 new_col_vals.append(canonical)
                 cleaned_source.append(cleaned)
 
-            df[rule.new_name] = new_col_vals
+            source_pos = df.columns.get_loc(source)
+            df.insert(
+                source_pos + 1,
+                rule.new_name,
+                new_col_vals,
+            )
 
             if rule.strip_from_source:
                 df[source] = cleaned_source
