@@ -127,20 +127,28 @@ def build_metrics(data, assignments):
         if assignments[i1] == assignments[i2]
     )
 
-    # Isolated-attribute groups (exactly 1 she/unknown)
+    # Isolated-attribute groups
     n_groups = data["n_groups"]
-    isolated = 0
+    is_he = 1 - is_she
+    isolated_she = 0
+    isolated_he = 0
     for j in range(n_groups):
         mask = assignments == j
         if int(is_she[mask].sum()) == 1:
-            isolated += 1
+            isolated_she += 1
+        if int(is_he[mask].sum()) == 1:
+            isolated_he += 1
 
     return {
         "score_range": float(score_range),
         "total_diversity": float(total_diversity),
         "size_range": int(size_range),
         "same_name_violations": violations,
-        "isolated_attribute_groups": isolated,
+        "isolated_attribute_groups": (
+            isolated_she + isolated_he
+        ),
+        "isolated_she_groups": isolated_she,
+        "isolated_he_groups": isolated_he,
     }
 
 

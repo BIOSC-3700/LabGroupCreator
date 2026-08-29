@@ -787,7 +787,8 @@ def server(input, output, session):
             f"Total diversity: {m['total_diversity']:.0f}",
             f"Size range: {m['size_range']}",
             f"Same-name violations: {m['same_name_violations']}",
-            f"Isolated groups: {m['isolated_attribute_groups']}",
+            f"Isolated she/unknown: {m['isolated_she_groups']}",
+            f"Isolated he: {m['isolated_he_groups']}",
         ]
         return "\n".join(lines)
 

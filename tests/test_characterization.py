@@ -12,8 +12,8 @@ from labgroupassigner.model import build_and_solve
 
 
 FIXTURES = [
-    ("examples/test_roster.csv", -144.00, 0),
-    ("examples/test_roster_hard.csv", -148.00, 3),
+    ("examples/test_roster.csv", -129.00, 0),
+    ("examples/test_roster_hard.csv", -137.00, 3),
 ]
 
 

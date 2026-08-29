@@ -80,8 +80,10 @@ def build_and_solve(
 
     n_base = n_x + 2 + n_max_cat
 
+    is_he = 1 - is_she
+
     if use_pronoun:
-        n_vars = n_base + 4 * g
+        n_vars = n_base + 8 * g
 
         def idx_has_she(j):
             return n_base + j
@@ -94,6 +96,18 @@ def build_and_solve(
 
         def idx_d_minus(j):
             return n_base + 3 * g + j
+
+        def idx_has_he(j):
+            return n_base + 4 * g + j
+
+        def idx_has_two_he(j):
+            return n_base + 5 * g + j
+
+        def idx_d_plus_he(j):
+            return n_base + 6 * g + j
+
+        def idx_d_minus_he(j):
+            return n_base + 7 * g + j
     else:
         n_vars = n_base
 
@@ -110,6 +124,10 @@ def build_and_solve(
             obj[idx_d_minus(j)] = pronoun_weight
             obj[idx_has_she(j)] = one_she_penalty
             obj[idx_has_two_she(j)] = -one_she_penalty
+            obj[idx_d_plus_he(j)] = pronoun_weight
+            obj[idx_d_minus_he(j)] = pronoun_weight
+            obj[idx_has_he(j)] = one_she_penalty
+            obj[idx_has_two_he(j)] = -one_she_penalty
 
     # -- Count constraint rows --
     n_rows = (
@@ -121,7 +139,7 @@ def build_and_solve(
         + len(pairs) * g
     )
     if use_pronoun:
-        n_rows += 5 * g
+        n_rows += 10 * g
 
     A = lil_matrix((n_rows, n_vars))
     lb = np.full(n_rows, -np.inf)
@@ -235,6 +253,54 @@ def build_and_solve(
             ub[row] = 2.0
             row += 1
 
+        # Block 10a: he_count >= has_he
+        for j in range(g):
+            for i in range(n):
+                A[row, idx_x(i, j)] = is_he[i]
+            A[row, idx_has_he(j)] = -1.0
+            lb[row] = 0.0
+            ub[row] = np.inf
+            row += 1
+
+        # Block 10b: he_count <= sizes[j] * has_he
+        for j in range(g):
+            for i in range(n):
+                A[row, idx_x(i, j)] = is_he[i]
+            A[row, idx_has_he(j)] = -float(sizes[j])
+            lb[row] = -np.inf
+            ub[row] = 0.0
+            row += 1
+
+        # Block 11a: he_count >= 2 * has_two_he
+        for j in range(g):
+            for i in range(n):
+                A[row, idx_x(i, j)] = is_he[i]
+            A[row, idx_has_two_he(j)] = -2.0
+            lb[row] = 0.0
+            ub[row] = np.inf
+            row += 1
+
+        # Block 11b: he_count <= 1 + (s-1)*has_two_he
+        for j in range(g):
+            for i in range(n):
+                A[row, idx_x(i, j)] = is_he[i]
+            A[row, idx_has_two_he(j)] = -float(
+                sizes[j] - 1
+            )
+            lb[row] = -np.inf
+            ub[row] = 1.0
+            row += 1
+
+        # Block 12: he_count - d+_he + d-_he == 2
+        for j in range(g):
+            for i in range(n):
+                A[row, idx_x(i, j)] = is_he[i]
+            A[row, idx_d_plus_he(j)] = -1.0
+            A[row, idx_d_minus_he(j)] = 1.0
+            lb[row] = 2.0
+            ub[row] = 2.0
+            row += 1
+
     # -- Integrality --
     integrality = np.zeros(n_vars)
     integrality[:n_x] = 1
@@ -242,6 +308,12 @@ def build_and_solve(
         integrality[n_base:n_base + g] = 1
         integrality[
             n_base + g:n_base + 2 * g
+        ] = 1
+        integrality[
+            n_base + 4 * g:n_base + 5 * g
+        ] = 1
+        integrality[
+            n_base + 5 * g:n_base + 6 * g
         ] = 1
 
     # -- Variable bounds --
@@ -259,6 +331,15 @@ def build_and_solve(
         ] = 1.0
         var_ub[
             n_base + 2 * g:n_base + 4 * g
+        ] = np.inf
+        var_ub[
+            n_base + 4 * g:n_base + 5 * g
+        ] = 1.0
+        var_ub[
+            n_base + 5 * g:n_base + 6 * g
+        ] = 1.0
+        var_ub[
+            n_base + 6 * g:n_base + 8 * g
         ] = np.inf
 
     # -- Solve --
