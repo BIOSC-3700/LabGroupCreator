@@ -850,7 +850,7 @@ def server(input, output, session):
         return render.DataGrid(
             df,
             row_selection_mode="none",
-            height="500px",
+            height="750px",
         )
 
     @output
