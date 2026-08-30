@@ -692,10 +692,6 @@ def server(input, output, session):
             if col_name in categories:
                 qi = categories.index(col_name)
                 orig_col = spec.score_cols[qi]
-                try:
-                    value = float(value)
-                except (ValueError, TypeError):
-                    pass
                 overrides[(row, orig_col)] = value
 
         data_overrides.set(overrides)

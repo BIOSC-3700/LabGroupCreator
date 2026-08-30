@@ -13,14 +13,16 @@ class SolverStatus(Enum):
 
 
 def group_sizes(n):
-    """Sizes for n students: only 3s and 4s,
-    maximizing 4s.
+    """Sizes for n students: 3s, 4s, and 5s.
 
-    Returns a list of sizes (4s first), or None if
-    n is too small (< 6).
+    Prefers groups of 4, uses 5 for n=9 instead
+    of three 3s. Returns a list of sizes, or None
+    if n is too small (< 6).
     """
     if n < 6:
         return None
+    if n == 9:
+        return [4, 5]
     for a in range(n // 4, -1, -1):
         rem = n - 4 * a
         if rem % 3 == 0:
@@ -310,6 +312,7 @@ def build_and_solve(
             lb[row] = 2.0
             ub[row] = 2.0
             row += 1
+
 
     # -- Integrality --
     integrality = np.zeros(n_vars)

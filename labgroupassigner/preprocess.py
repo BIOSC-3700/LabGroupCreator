@@ -196,7 +196,13 @@ def prepare(df, spec, config=None, status_callback=None):
             if isinstance(val, (int, float)):
                 return float(val)
             key = " ".join(str(val).lower().split())
-            return _LIKERT_MAP_LOWER.get(key, np.nan)
+            mapped = _LIKERT_MAP_LOWER.get(key)
+            if mapped is not None:
+                return mapped
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return np.nan
 
         original = wdf[cat].copy()
         wdf[cat] = wdf[cat].apply(_recode)
@@ -328,10 +334,10 @@ def prepare(df, spec, config=None, status_callback=None):
     n_she = int(is_she.sum())
     n_he = n_students - n_she
     use_pronoun_constraint = (
-        n_she == 0 or n_she >= 2 * n_groups
+        n_she == 0 or n_she >= 2
     )
     use_he_constraint = (
-        n_he == 0 or n_he >= 2 * n_groups
+        n_he == 0 or n_he >= 2
     )
 
     if use_pronoun_constraint:
